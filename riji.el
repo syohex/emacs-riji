@@ -64,9 +64,14 @@
 (defvar riji--read-directory-history '())
 
 (defun riji--read-directory ()
-  (completing-read "Riji Directory: " riji-directories
-                   nil nil riji-default-directory
-                   'riji--read-directory-history riji-default-directory))
+  (let* ((prompt (format "Riji Directory[Default %s]: " riji-default-directory))
+         (dir (completing-read prompt (cons riji-default-directory riji-directories)
+                               nil nil nil
+                               'riji--read-directory-history riji-default-directory)))
+    (setq dir (file-name-as-directory dir))
+    (unless (file-directory-p dir)
+      (error "Invalid directory: %s" dir))
+    dir))
 
 ;;;###autoload
 (defun riji-entry ()
