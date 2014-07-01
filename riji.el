@@ -94,7 +94,7 @@
         (error "Failed: 'riji publish'"))
       (goto-char (point-min))
       (unless (search-forward "done." nil t)
-        (message "fatal error: '%s" cmd)))))
+        (message "fatal error: 'riji publish")))))
 
 ;;
 ;; helm interface
@@ -102,28 +102,33 @@
 
 (defun helm-riji--init ()
   (let* ((riji-dir (riji--read-directory))
-         (default-directory riji-dir))
-    (let* ((topdir (riji--top-directory))
-           (default-directory topdir))
-      (with-current-buffer (helm-candidate-buffer 'global)
-        (let* ((article-dir (expand-file-name (concat topdir "article")))
-               (cmd (format "find %s -type f -name '*.md'|sort" article-dir)))
-          (unless (zerop (call-process-shell-command cmd nil t))
-            (error "Faild: %s" cmd)))))))
+         (default-directory riji-dir)
+         (topdir (riji--top-directory))
+         (article-dir (expand-file-name (concat topdir "article")))
+         markdown-files)
+    (with-temp-buffer
+      (unless (zerop (call-process "find" nil t nil article-dir "-type" "f" "-name" "*.md"))
+        (error "Failed: 'find' command"))
+      (goto-char (point-min))
+      (while (not (eobp))
+        (push (buffer-substring-no-properties
+               (line-beginning-position) (line-end-position)) markdown-files)
+        (forward-line 1))
+      (sort markdown-files 'string<))))
 
 (defvar helm-source-riji
   '((name . "Riji Entries")
-    (init . helm-riji--init)
-    (candidates-in-buffer)
-    (type . file)))
+    (candidates . helm-riji--init)
+    (volatile)
+    (action . (("Open File" . (lambda (f) (find-file f)))
+               ("Open File Other Window" . (lambda (f) (find-file-other-window f)))))))
 
 ;;;###autoload
 (defun helm-riji ()
   (interactive)
   (unless (featurep 'helm)
     (error "helm is not installed or disabled."))
-  (let ((buf (get-buffer-create "*helm riji*")))
-    (helm :sources helm-source-riji :buffer buf)))
+  (helm :sources '(helm-source-riji) :buffer "*helm riji*"))
 
 (provide 'riji)
 
