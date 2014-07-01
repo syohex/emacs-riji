@@ -1,10 +1,11 @@
-;;; riji.el --- Riji blog system for Emacs
+;;; riji.el --- Riji blog system for Emacs -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013 by Syohei YOSHIDA
+;; Copyright (C) 2014 by Syohei YOSHIDA
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-riji
 ;; Version: 0.01
+;; Package-Requires: ((cl-lib "0.5"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,10 +24,10 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'cl))
+(require 'cl-lib)
 
 (declare-function helm "helm")
+(declare-function helm-candidate-buffer "helm")
 
 (defgroup riji nil
   "riji blog system"
@@ -51,7 +52,7 @@
          (entry (riji--construct-entry-name date index)))
     (let ((default-directory dir))
       (while (file-exists-p entry)
-        (incf index)
+        (cl-incf index)
         (setq entry (riji--construct-entry-name date index))))
     (concat dir entry)))
 
@@ -87,11 +88,10 @@
 ;;;###autoload
 (defun riji-publish ()
   (interactive)
-  (let ((default-directory (riji--top-directory))
-        (cmd "riji publish"))
+  (let ((default-directory (riji--top-directory)))
     (with-temp-buffer
-      (unless (zerop (call-process-shell-command cmd nil t))
-        (error "Failed: '%s'" cmd))
+      (unless (zerop (call-process "riji" nil t nil "publish"))
+        (error "Failed: 'riji publish'"))
       (goto-char (point-min))
       (unless (search-forward "done." nil t)
         (message "fatal error: '%s" cmd)))))
